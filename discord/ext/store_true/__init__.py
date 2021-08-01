@@ -1,6 +1,6 @@
 import copy
 
-from typing import TypeVar, Type
+from typing import Any, ClassVar, TypeVar, Type
 
 import discord
 from discord.ext import commands
@@ -8,20 +8,25 @@ from discord.ext import commands
 import re
 
 
-__version__ = '1.0.0'
+__version__ = "1.0.1"
 
 
 C = TypeVar("C", bound=commands.Context)
 
 
 class StoreTrueMixin:
+    _STORE_TRUE_FLAG_REGEX: ClassVar[str] = r"{0}([^\s]+)(?=(\s{0}[^\s]+)|$)"
 
     __slots__ = ()
 
     async def get_context(
-        self, message: discord.Message, *, cls: Type[C] = commands.Context
+        self,
+        message: discord.Message,
+        *args: Any,
+        cls: Type[C] = commands.Context,
+        **kwargs: Any,
     ) -> C:
-        ctx = await super().get_context(message, cls=cls)  # type: ignore
+        ctx = await super().get_context(message, *args, cls=cls, **kwargs)  # type: ignore
 
         if ctx.command is None:
             return ctx
@@ -40,12 +45,18 @@ class StoreTrueMixin:
         assert issubclass(flags, commands.FlagConverter)
         prefix = flags.__commands_flag_prefix__
 
+        # add support for `-foo` shortcut
+        if prefix == "--":
+            prefix = r"--?"
+        else:
+            prefix = re.escape(prefix)
+
         message = copy.copy(message)
 
         message.content = re.sub(
-            rf"{prefix}([^\s]+)(?=(\s{prefix})|$)",
+            self._STORE_TRUE_FLAG_REGEX.format(prefix),
             rf"{prefix}\1 true",
             message.content,
         )
 
-        return await super().get_context(message, cls=cls)  # type: ignore
+        return await super().get_context(message, *args, cls=cls, **kwargs)  # type: ignore
