@@ -8,7 +8,7 @@ from discord.ext import commands
 import re
 
 
-__version__ = "1.0.1"
+__version__ = "1.0.2"
 
 
 C = TypeVar("C", bound=commands.Context)
@@ -55,7 +55,7 @@ class StoreTrueMixin:
 
         message.content = re.sub(
             self._STORE_TRUE_FLAG_REGEX.format(prefix),
-            rf"{prefix}\1 true",
+            rf"{prefix if prefix != r'--?' else '--'}\1 true",
             message.content,
         )
 
